@@ -178,7 +178,7 @@ export async function runCloud(command, options, {
     return job;
   }
   const payload = deployPayload(options, { cwd, runGit });
-  print('App từ git đang mở; endpoint có thể chưa live.');
+  print('App từ git: repo public → URL https trong ~1–3 phút (app host đầu tiên mất thêm ~2 phút).');
   if (isSandbox) {
     const preview = await callTool('cloud_app_create', { ...payload, sandbox: true });
     if (preview.polling === 'timeout') completed(preview, 'Sandbox');

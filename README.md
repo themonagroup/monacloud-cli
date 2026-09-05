@@ -36,7 +36,7 @@ npx monacloud recipes
 
 Bảy công thức được xếp theo ba mảng:
 
-- Quản trị doanh nghiệp: `app-tu-git` — deploy repo có HTTPS (đang mở); `phan-mem-noi-bo` — CRM, chấm công, kho và báo cáo nội bộ.
+- Quản trị doanh nghiệp: `app-tu-git` — deploy repo có HTTPS; `phan-mem-noi-bo` — CRM, chấm công, kho và báo cáo nội bộ.
 - Marketing & bán hàng: `web-ban-hang`, `bot-cskh`, `landing-form-lead`, `gui-mail-otp` — gửi mail OTP, xác nhận đơn và thông báo bằng MONA Mail.
 - Trợ lý riêng của chủ: `tro-ly-chu-ca` — đọc số bán, nhắc việc, soạn bản nháp và canh dòng tiền.
 

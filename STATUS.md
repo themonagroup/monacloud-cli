@@ -62,3 +62,6 @@ Không có hạng mục P0 nào được để lại ngoài package này.
 ## 05/09 — 0.2.2 (Claude): recipe `gui-mail-otp` + MONA Mail trong template agent
 - Thêm recipe thứ 6 `gui-mail-otp` (vi/en) cho `monacloud init --recipe gui-mail-otp`; `agent.vi.md`/`agent.en.md` đổi dòng "MONA Mail chưa mở" thành luật dùng MONA Mail (`mail_*`, SDK `monamail`, `MONAMAIL_API_KEY`, không cài Resend/SendGrid nếu không được yêu cầu) + ví dụ chuỗi tool + link llms.txt/agent-guide.md monamail.vn; `.env.monacloud` có `MONAMAIL_API`.
 - Test cập nhật đếm 6 recipe; `npm test` 20/20. Chưa publish npm 0.2.2: chờ api.monamail.vn live.
+
+## 05/09 tối — publish npm `monacloud@0.3.0` (Claude, phiên monacloud; phiên monapay xác nhận không giữ bản nào)
+- `npm test` 31/31 · `npm pack --dry-run` 23 file · publish public. Gồm recipe `gui-mail-otp` + template agent trỏ MONA Mail + lệnh compute Wave B (`plans/vps/invoices/deploy`) của phiên monapay.

@@ -23,7 +23,7 @@ export const ENV_END_MARKER = '# monacloud:end';
 export const REGISTRATION_URL = 'https://pass.monacloud.vn/realms/mona/protocol/openid-connect/registrations';
 
 export const RECIPES = Object.freeze([
-  Object.freeze({ slug: 'app-tu-git', group: 'business', vi: 'Deploy repo git thành app có HTTPS (đang mở)', en: 'Deploy a git repository with HTTPS (rollout in progress)' }),
+  Object.freeze({ slug: 'app-tu-git', group: 'business', vi: 'Deploy repo git thành app có HTTPS', en: 'Deploy a git repository with HTTPS (rollout in progress)' }),
   Object.freeze({
     slug: 'phan-mem-noi-bo',
     group: 'business',
