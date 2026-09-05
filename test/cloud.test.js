@@ -28,7 +28,7 @@ test('deploy reads actual local git origin and branch without a shell; overrides
     assert.equal(payload.repo_url, 'https://git.test/team/shop.git'); assert.equal(payload.branch, 'release');
     assert.equal(payload.build_type, 'dockerfile'); assert.equal(payload.port, 3000);
     assert.equal(deployPayload({ ...deployOptions, build: 'nixpacks', port: '8080' }, { cwd }).port, 8080);
-    assert.throws(() => deployPayload({}, { runGit: () => ({ status: 1 }) }), /origin/);
+    assert.throws(() => deployPayload({ git: true }, { runGit: () => ({ status: 1 }) }), /origin/);
     assert.throws(() => deployPayload({ repo: deployOptions.repo }, { runGit: () => ({ status: 0, stdout: '' }) }), /--branch/);
     for (const repo of ['file:///etc/passwd', 'https://token@git.test/a/b', 'https://git.test/a/b?token=secret']) assert.throws(() => deployPayload({ repo, branch: 'main' }));
     assert.throws(() => deployPayload({ ...deployOptions, domain: 'https://shop.test' }), /hostname/);
@@ -139,7 +139,7 @@ test('stdio MCP bridge initializes, calls tools, propagates API errors and close
     writeFileSync(executable, `#!${process.execPath}\nimport('node:readline').then(({createInterface}) => {
       createInterface({input:process.stdin}).on('line', line => {
         const request=JSON.parse(line); if(!request.id)return;
-        let result=request.method==='initialize'?{protocolVersion:'2024-11-05',serverInfo:{name:'mock',version:'0.3.0'},capabilities:{tools:{}}}:{content:[{type:'text',text:JSON.stringify(request.params.name==='cloud_plan_list'?{plans:[]}: {code:'not_found',message:'Missing invoice',next_step:'List invoices'})}],isError:request.params.name!=='cloud_plan_list'};
+        let result=request.method==='initialize'?{protocolVersion:'2024-11-05',serverInfo:{name:'mock',version:'0.4.0'},capabilities:{tools:{}}}:{content:[{type:'text',text:JSON.stringify(request.params.name==='cloud_plan_list'?{plans:[]}: {code:'not_found',message:'Missing invoice',next_step:'List invoices'})}],isError:request.params.name!=='cloud_plan_list'};
         process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:request.id,result})+'\\n');
       });
     });\n`, { mode: 0o700 });

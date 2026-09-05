@@ -132,7 +132,7 @@ npm pack --dry-run
 
 Mã nguồn chỉ dùng module built-in của Node.js (`fs`, `path`, `url`, `readline`, `child_process`).
 
-## Compute CLI 0.3.0
+## Compute CLI 0.4.0
 
 ```bash
 monacloud plans
@@ -142,7 +142,7 @@ monacloud invoices --pdf <id>
 monacloud deploy --repo https://github.com/example/shop.git --branch main --build nixpacks --domain shop.example.vn
 ```
 
-Lệnh compute dùng `monacloud-mcp >=0.3.0` đã cài hoặc có trong cache offline, dùng chung đăng nhập và spend guard. `--yes` là duyệt thao tác thật cho CI; mặc định in chi phí rồi hỏi trước khi thực hiện. `--dry-run` chỉ lấy ước tính; `--sandbox` thử 0đ. Không có bước tự tải dependency khi chạy lệnh compute.
+Lệnh compute dùng `monacloud-mcp >=0.4.0` đã cài hoặc có trong cache offline, dùng chung đăng nhập và spend guard. `--yes` là duyệt thao tác thật cho CI; mặc định in chi phí rồi hỏi trước khi thực hiện. `--dry-run` chỉ lấy ước tính; `--sandbox` thử 0đ. Không có bước tự tải dependency khi chạy lệnh compute.
 
 ### App từ git: 3 bước sau khi init
 
@@ -154,8 +154,30 @@ monacloud init --recipe app-tu-git --yes
 2. Thử miễn phí: `monacloud deploy --sandbox`.
 3. Xem ước tính và duyệt: `monacloud deploy`.
 
-CLI đọc `git remote get-url origin` và nhánh hiện tại; có thể ghi đè bằng `--repo`, `--branch`. Build có `dockerfile|nixpacks|static`, domain bằng `--domain`. SSH remote thông dụng được đổi sang HTTPS; repo phải public theo hợp đồng Wave B. `monacloud deploy` in URL khi job thành công, giữ job_id khi timeout để poll tiếp. App từ git **đang mở**, 404/503 hoặc build lỗi trả exit code 1.
+Mặc định CLI deploy **thư mục hiện tại** khi có Dockerfile hoặc package.json, `--local` ép thư mục bất kỳ. `--git` đọc `git remote get-url origin` và nhánh hiện tại; có thể ghi đè bằng `--repo`, `--branch`. Build có `dockerfile|nixpacks|static`, domain bằng `--domain`. SSH remote thông dụng được đổi sang HTTPS; nguồn git phải public; dự án private đã có local dùng upload. `monacloud deploy` in URL khi job thành công, giữ job_id khi timeout để poll tiếp. 404/503, upload hoặc build lỗi trả exit code 1.
 
 Prompt mẫu: “Deploy repo hiện tại lên MONA Cloud. Đọc host, sandbox trước nếu chưa có host, báo chi phí để tôi duyệt rồi deploy thật, kiểm HTTPS và trả URL.”
 
 Bảng lệnh ↔ tool, auth, PDF tạm và đầy đủ cờ: [docs/commands.md](docs/commands.md).
+
+
+## Deploy local: AI làm 99%
+
+Prompt Claude Code: **“Đưa dự án này lên MONA Cloud, dùng thư mục hiện tại”**.
+
+```bash
+monacloud deploy --sandbox            # tự chọn local nếu có Dockerfile/package.json
+monacloud deploy                      # báo chi phí, duyệt một lần, trả URL
+monacloud deploy --local --name shop  # ép local cho Python/PHP/static
+monacloud deploy --git                # dùng origin như trước
+```
+
+| Bước CLI | MCP tool |
+|---|---|
+| Nhận diện local, không mạng | `cloud_app_detect(local_dir)` |
+| Đọc host và chi phí | `cloud_app_host_list`, `cloud_app_create(local_dir, sandbox=true)` nếu chưa có host |
+| Đọc ví, duyệt, ZIP/upload/build và trả URL | `cloud_balance`, `cloud_app_create(local_dir)` |
+| Cập nhật source local sau này | `cloud_app_deploy(app_id, local_dir)` qua MCP |
+| Domain riêng | `cloud_app_domain_add` qua MCP, làm theo CNAME trả về |
+
+ZIP và auth do MCP 0.4.0 xử lý, tối đa 80 MiB; loại `.env*`, `*.pem`, `.git`, `node_modules`, symlink, áp dụng ignore rules, giữ dist mặc định. Human đăng ký MONA Pass/device flow và nạp ví khi hết credit 20k. Recipe `app-tu-git` giữ slug tương thích, mô tả mới **Đưa app lên web (git hoặc thư mục)**. [Đầy đủ tuỳ chọn và luồng lỗi](docs/commands.md).

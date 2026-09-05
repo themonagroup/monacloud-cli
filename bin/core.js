@@ -15,7 +15,7 @@ import {
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
 export const START_MARKER = '<!-- monacloud:start -->';
 export const END_MARKER = '<!-- monacloud:end -->';
 export const ENV_START_MARKER = '# monacloud:start';
@@ -23,7 +23,7 @@ export const ENV_END_MARKER = '# monacloud:end';
 export const REGISTRATION_URL = 'https://pass.monacloud.vn/realms/mona/protocol/openid-connect/registrations';
 
 export const RECIPES = Object.freeze([
-  Object.freeze({ slug: 'app-tu-git', group: 'business', vi: 'Deploy repo git thành app có HTTPS', en: 'Deploy a git repository with HTTPS (rollout in progress)' }),
+  Object.freeze({ slug: 'app-tu-git', group: 'business', vi: 'Đưa app lên web (git hoặc thư mục)', en: 'Put an app on the web (git or folder)' }),
   Object.freeze({
     slug: 'phan-mem-noi-bo',
     group: 'business',
@@ -513,7 +513,7 @@ export function helpText(lang = 'vi') {
   monacloud plans
   monacloud vps create --plan <code> --monthly [--period month|year] [--name <name>] [--sandbox] [--dry-run] [--yes]
   monacloud invoices [--pdf <id>]
-  monacloud deploy [--repo <url>] [--branch <name>] [--build dockerfile|nixpacks|static] [--domain <host>] [--app-host <id>] [--port <port>] [--dockerfile <path>] [--sandbox] [--dry-run] [--yes]
+  monacloud deploy [--local | --git] [--name <name>] [--repo <url>] [--branch <name>] [--build dockerfile|nixpacks|static] [--domain <host>] [--app-host <id>] [--port <port>] [--dockerfile <path>] [--sandbox] [--dry-run] [--yes]
   monacloud --help
   monacloud --version
 
@@ -529,7 +529,7 @@ Commands:
   monacloud plans
   monacloud vps create --plan <code> --monthly [--period month|year] [--name <name>] [--sandbox] [--dry-run] [--yes]
   monacloud invoices [--pdf <id>]
-  monacloud deploy [--repo <url>] [--branch <name>] [--build dockerfile|nixpacks|static] [--domain <host>] [--app-host <id>] [--port <port>] [--dockerfile <path>] [--sandbox] [--dry-run] [--yes]
+  monacloud deploy [--local | --git] [--name <name>] [--repo <url>] [--branch <name>] [--build dockerfile|nixpacks|static] [--domain <host>] [--app-host <id>] [--port <port>] [--dockerfile <path>] [--sandbox] [--dry-run] [--yes]
   monacloud --help
   monacloud --version
 

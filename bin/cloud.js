@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 import { CliError, findExecutable } from './core.js';
 
 // A small stdio MCP client keeps compute/auth/spend-guard logic in monacloud-mcp.
@@ -8,8 +9,8 @@ import { CliError, findExecutable } from './core.js';
 export async function connectMcp({ env = process.env, cwd = process.cwd() } = {}) {
   const executable = findExecutable('monacloud-mcp', env, cwd);
   const npx = executable ? null : findExecutable('npx', { ...env, MONACLOUD_MCP_BIN: '' }, cwd);
-  if (!executable && !npx) throw new CliError('Cần monacloud-mcp >=0.3.0 cài local hoặc có trong npm cache; chạy monacloud doctor.', 1);
-  const child = spawn(executable || npx, executable ? [] : ['--offline', '--yes', '--package=monacloud-mcp', '--', 'monacloud-mcp'], {
+  if (!executable && !npx) throw new CliError('Cần npx (Node >= 18) để tự tải monacloud-mcp >=0.4.0, hoặc cài: npm i -g monacloud-mcp; chạy monacloud doctor.', 1);
+  const child = spawn(executable || npx, executable ? [] : ['--yes', '--package=monacloud-mcp@^0.4.0', '--', 'monacloud-mcp'], {
     cwd, env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
   });
   child.stderr.resume(); // Never echo a child token or secret from diagnostics.
@@ -23,7 +24,7 @@ export async function connectMcp({ env = process.env, cwd = process.cwd() } = {}
     pending.clear();
   };
   child.on('error', () => fail('Không chạy được monacloud-mcp; kiểm tra monacloud doctor.'));
-  child.on('exit', () => fail('monacloud-mcp đã dừng; kiểm tra bản >=0.3.0 và monacloud doctor.'));
+  child.on('exit', () => fail('monacloud-mcp đã dừng; kiểm tra bản >=0.4.0 và monacloud doctor.'));
   child.stdin.on('error', () => fail('Mất kết nối stdio với monacloud-mcp.'));
   lines.on('line', (line) => {
     let message;
@@ -48,9 +49,9 @@ export async function connectMcp({ env = process.env, cwd = process.cwd() } = {}
   });
   const close = () => { fail('MCP connection closed.'); lines.close(); child.stdin.end(); child.kill(); };
   try {
-    const init = await request('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'monacloud-cli', version: '0.3.0' } }, 15_000);
+    const init = await request('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'monacloud-cli', version: '0.4.0' } }, 15_000);
     const parts = String(init?.serverInfo?.version || '').split('.').map(Number);
-    if (!(parts[0] > 0 || parts[0] === 0 && parts[1] >= 3)) throw new CliError('Cần monacloud-mcp >=0.3.0 cho lệnh compute.', 1);
+    if (!(parts[0] > 0 || parts[0] === 0 && parts[1] >= 4)) throw new CliError('Cần monacloud-mcp >=0.4.0 cho lệnh compute.', 1);
     send({ method: 'notifications/initialized' });
   } catch (error) { close(); throw error; }
   return {
@@ -70,7 +71,7 @@ export function parseCloudOptions(command, args) {
   const options = { help: false, sandbox: false, yes: false, dryRun: false };
   const values = command === 'vps'
     ? ['plan', 'name', 'period']
-    : command === 'deploy' ? ['repo', 'branch', 'build', 'domain', 'app-host', 'port', 'dockerfile']
+    : command === 'deploy' ? ['repo', 'branch', 'build', 'domain', 'app-host', 'port', 'dockerfile', 'name']
       : command === 'invoices' ? ['pdf'] : [];
   for (let i = 0; i < args.length; i += 1) {
     const argument = args[i];
@@ -79,6 +80,7 @@ export function parseCloudOptions(command, args) {
       options[argument === '--sandbox' ? 'sandbox' : argument === '--dry-run' ? 'dryRun' : 'yes'] = true;
       continue;
     }
+    if (command === 'deploy' && ['--local', '--git'].includes(argument)) { options[argument.slice(2)] = true; continue; }
     if (command === 'vps' && argument === '--monthly') { options.monthly = true; continue; }
     const [flag, ...rest] = argument.split('=');
     const name = flag.replace(/^--/, '');
@@ -93,6 +95,8 @@ export function parseCloudOptions(command, args) {
     if (options.period && !['month', 'year'].includes(options.period)) throw new CliError('--period must be month or year.');
     if (options.name && (options.name.length < 2 || options.name.length > 80)) throw new CliError('--name requires 2–80 characters.');
   }
+  if (options.local && (options.git || options.repo || options.branch || options['app-host'])) throw new CliError('--local không dùng cùng --git/--repo/--branch/--app-host.');
+  if (options.name && options.name.length > 80) throw new CliError('--name tối đa 80 ký tự.');
   if (options.build && !['dockerfile', 'nixpacks', 'static'].includes(options.build)) throw new CliError('--build must be dockerfile, nixpacks or static.');
   if (options.port !== undefined && (!/^\d+$/.test(options.port) || Number(options.port) < 1 || Number(options.port) > 65535)) throw new CliError('--port must be 1–65535.');
   return options;
@@ -104,6 +108,12 @@ function gitValue(args, cwd, runGit) {
 }
 
 export function deployPayload(options, { cwd = process.cwd(), runGit = spawnSync } = {}) {
+  if (options.domain && !/^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/.test(options.domain)) throw new CliError('--domain chỉ nhận hostname, không URL/path.');
+  const local = options.local || (!options.git && !options.repo && (existsSync(resolve(cwd, 'Dockerfile')) || existsSync(resolve(cwd, 'package.json'))));
+  if (local) {
+    if (options.git || options.repo || options.branch || options['app-host'] || options.dockerfile && options.dockerfile !== 'Dockerfile') throw new CliError('Deploy local dùng Dockerfile ở root; dùng --git cho --branch/--app-host/--dockerfile tuỳ chỉnh.');
+    return { local_dir: resolve(cwd), ...(options.name ? { name: options.name } : {}), ...(options.build ? { build_type: options.build } : {}), ...(options.port ? { port: Number(options.port) } : {}), ...(options.domain ? { domain: options.domain } : {}), env: {} };
+  }
   let repo_url = options.repo || gitValue(['remote', 'get-url', 'origin'], cwd, runGit);
   if (!repo_url) throw new CliError('Không tìm thấy git remote origin; truyền --repo <url>.');
   // Wave B accepts public HTTPS repositories. Common SSH remotes map to the same public URL.
@@ -121,7 +131,6 @@ export function deployPayload(options, { cwd = process.cwd(), runGit = spawnSync
   if (!validRepo) throw new CliError('--repo cần public HTTPS git URL không chứa token hoặc mật khẩu (SSH remote thông dụng được đổi sang HTTPS).');
   const branch = options.branch || gitValue(['branch', '--show-current'], cwd, runGit);
   if (!branch) throw new CliError('Không tìm thấy nhánh hiện tại (ngoài repo hoặc detached HEAD); truyền --branch <name>.');
-  if (options.domain && !/^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/.test(options.domain)) throw new CliError('--domain chỉ nhận hostname, không URL/path.');
   return { repo_url, branch, build_type: options.build || 'dockerfile', dockerfile: options.dockerfile || 'Dockerfile',
     env: {}, port: Number(options.port || 3000), ...(options.domain ? { domain: options.domain } : {}),
     ...(options['app-host'] ? { app_host_id: options['app-host'] } : {}) };
@@ -178,10 +187,19 @@ export async function runCloud(command, options, {
     return job;
   }
   const payload = deployPayload(options, { cwd, runGit });
-  print('App từ git: repo public → URL https trong ~1–3 phút (app host đầu tiên mất thêm ~2 phút).');
+  if (payload.local_dir) {
+    print(`Nhận diện dự án: ${payload.local_dir}`);
+    const detected = await callTool('cloud_app_detect', { local_dir: payload.local_dir });
+    payload.build_type ||= detected.build_type;
+    payload.port ||= detected.port;
+    payload.name ||= detected.name;
+    print(`Stack: ${detected.stack}; build: ${payload.build_type}; port: ${payload.port}.`);
+    if (detected.env_required?.length) print(`Env cần cấu hình: ${detected.env_required.join(', ')} (giá trị giữ trong secret env).`);
+    print('Đóng ZIP thư mục hiện tại, upload và chờ build qua MCP (tối đa 80 MiB).');
+  } else print('App từ git: repo public → URL https trong ~1–3 phút (app host đầu tiên mất thêm ~2 phút).');
   if (isSandbox) {
     const preview = await callTool('cloud_app_create', { ...payload, sandbox: true });
-    if (preview.polling === 'timeout') completed(preview, 'Sandbox');
+    completed(preview, 'Sandbox');
     const url = preview.url || preview.result?.url;
     if (!url) throw new CliError('Sandbox chưa trả URL; kiểm tra job trước khi retry.', 1);
     print(`Sandbox (0đ): ${url}`);
@@ -197,19 +215,21 @@ export async function runCloud(command, options, {
   if (!host && hosts.length) throw new CliError('Chưa có app host sẵn sàng; đọc cloud_services_list và start host trước khi deploy.');
   let estimate;
   if (host) {
-    payload.app_host_id = host.id || host.service_id;
-    estimate = { existing_app_host: payload.app_host_id, hourly_rate_vnd: host.hourly_rate_vnd, billing_mode: host.billing_mode, note: 'Dùng host hiện có; phí host tiếp tục theo kỳ đang dùng.' };
+    if (!payload.local_dir) payload.app_host_id = host.id || host.service_id;
+    estimate = { existing_app_host: host.id || host.service_id, hourly_rate_vnd: host.hourly_rate_vnd, billing_mode: host.billing_mode, note: 'Dùng host hiện có; phí host tiếp tục theo kỳ đang dùng.' };
   } else {
     const preview = await callTool('cloud_app_create', { ...payload, sandbox: true });
-    if (preview.polling === 'timeout') completed(preview, 'Sandbox');
+    completed(preview, 'Sandbox');
     estimate = preview.estimate || preview.result?.estimated_app_host || preview.result?.estimate || preview.estimated_cost;
     if (!estimate) throw new CliError('Sandbox chưa trả ước tính app host; chưa tạo thật. Đọc cloud_packages/cloud_prices rồi thử lại.', 1);
   }
-  const summary = `${payload.repo_url} (${payload.branch}, ${payload.build_type})\n${JSON.stringify(estimate, null, 2)}`;
+  const summary = `${payload.local_dir || payload.repo_url} (${payload.local_dir ? 'local' : payload.branch}, ${payload.build_type})\n${JSON.stringify(estimate, null, 2)}`;
   if (options.dryRun) { print(summary); return { estimate }; }
   await callTool('cloud_balance');
   await approve(summary);
+  print('Đang deploy và chờ job hoàn tất…');
   const result = await callTool('cloud_app_create', { ...payload, sandbox: false });
+  if (result.sandbox || result.needs_cost_approval) throw new CliError(`Chưa deploy thật; ${result.next_step || 'cần duyệt lại ước tính sandbox.'}`, 1);
   if (result.polling === 'timeout') completed(result, 'Deploy');
   const url = result.url || result.result?.url;
   if (!url || !['done', 'succeeded'].includes(result.status)) completed(result, 'Deploy');

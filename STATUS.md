@@ -1,4 +1,34 @@
-# STATUS — monacloud CLI
+# STATUS — monacloud CLI 0.4.0
+
+Updated: 2026-09-05 (Asia/Ho_Chi_Minh)
+
+## Brief deploy local — hoàn tất offline
+
+- `monacloud deploy` tự dùng cwd có Dockerfile hoặc package.json. `--local` ép thư mục cho Python/PHP/static; `--git` dùng origin như trước, `--repo` vẫn chọn git tường minh.
+- Local gọi cloud_app_detect offline, chọn tên/build/port (có --name/--build/--port override), dùng MCP 0.4.0 để ZIP/upload/poll; in tiến trình và URL khi job thành công.
+- Chưa có app host: sandbox lấy giá giờ/gói, đọc ví, duyệt chi phí một lần rồi tạo thật. Có host: dùng phí host đang chạy. `--sandbox`, env sandbox, `--dry-run`, `--yes`, từ chối và non-TTY giữ hành vi đã có.
+- ZIP do MCP đảm nhiệm, tối đa 80 MiB, ignore/secrets/symlink được loại. Nguồn local không gửi branch/app_host_id/Dockerfile path tuỳ chỉnh; các tuỳ chọn đó dành cho git theo đúng hợp đồng backend.
+- Recipe slug app-tu-git giữ nguyên; mô tả “Đưa app lên web (git hoặc thư mục)”. Agent/recipe VI/EN, README, bảng lệnh và prompt Claude Code đã chuyển sang AI làm 99%.
+- Phiên bản package/binary/stdio client 0.4.0, yêu cầu MCP >=0.4.0. Không thêm dependency; npx fallback vẫn --offline, không publish.
+
+## Gate bàn giao
+
+```text
+mcp: npm test → 47 tests, 47 pass, 0 fail, 0 skip
+cli: npm test → 36 tests, 36 pass, 0 fail, 0 skip
+```
+
+CLI mới kiểm tra chọn source/cờ xung đột, detect→preview→duyệt đúng một lần→URL, dry-run/host hiện có, sandbox thất bại; test executable gọi MCP thật và HTTP mock kiểm ZIP/FormData/field archive+build_path, sandbox/refusal/dry-run/live/build lỗi. Không truy cập production. MCP sibling đã build nên 2 test tích hợp workspace đều chạy, không skip.
+
+Prompt Claude Code: **“Đưa dự án này lên MONA Cloud, dùng thư mục hiện tại”**.
+
+Xem [docs/commands.md](docs/commands.md) cho tuỳ chọn và luồng tiếp tục khi job lỗi/timeout.
+
+CODEX DONE
+
+---
+
+# Lịch sử — monacloud CLI
 
 Cập nhật: 05/09/2026
 

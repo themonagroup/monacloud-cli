@@ -28,7 +28,7 @@ Không hỏi mật khẩu. Không ghi token, PAT hay secret vào source, log ho�
 
 ## Ví dụ tool
 
-- Deploy repo (đang mở): `cloud_app_list` → `cloud_app_host_list` → `cloud_app_create` sandbox nếu chưa có host → báo ước tính → duyệt → `cloud_app_create` thật → `cloud_app_get`/`cloud_app_logs` và kiểm URL. Không dùng `agent_deploy` cho repo git.
+- Deploy dự án — AI làm 99%: `cloud_app_detect(local_dir)` offline → `cloud_app_list` → `cloud_app_host_list` → `cloud_app_create(local_dir)` sandbox nếu chưa có host → báo chi phí giờ/gói → hỏi duyệt một lần nếu chưa được duyệt → `cloud_app_create(local_dir)` thật → `cloud_app_get`/`cloud_app_logs` và kiểm URL. Không dùng `agent_deploy` cho repo git.
 - VPS gói tháng/năm: `cloud_plan_list` → `cloud_balance` → báo giá theo period → duyệt → `cloud_vps_create` với billing_mode=monthly, plan_code, period. Quản lý bằng `cloud_subscription_list`/`cloud_subscription_update`, đọc `cloud_invoice_list`/`cloud_invoice_pdf`; mã tặng dùng `cloud_credit_redeem`.
 - Thu tiền: tạo endpoint webhook HMAC/idempotent, rồi dùng `monapay_create_webhook`, `monapay_test_webhook` và `monapay_create_qr`.
 - Gửi mail: `mail_account` → `mail_domain_add` → người dùng thêm DNS (hoặc `mail_domain_cloudflare`) → `mail_domain_verify` → `mail_api_key_create` → `mail_send` → `mail_status`; webhook bounce bằng `mail_webhook_create`.
@@ -40,3 +40,5 @@ Không hỏi mật khẩu. Không ghi token, PAT hay secret vào source, log ho�
 - Agent guide: https://monacloud.vn/agent-guide.md
 - MONA Pay: https://monapay.vn/llms.txt
 - MONA Mail: https://monamail.vn/llms.txt và https://monamail.vn/agent-guide.md
+
+Prompt Claude Code: “Đưa dự án này lên MONA Cloud, dùng thư mục hiện tại”. Human đăng ký MONA Pass/device flow, nạp tiền khi hết credit 20k. Có domain riêng: cloud_app_domain_add và hướng dẫn CNAME. Deploy git dùng repo_url; CLI --git dùng origin, --local ép thư mục.
