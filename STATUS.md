@@ -1,6 +1,38 @@
 # STATUS — monacloud CLI
 
-Cập nhật: 04/09/2026
+Cập nhật: 05/09/2026
+
+## 0.3.0 — Wave A/B hoàn tất
+
+- [x] `monacloud plans`: bảng gói, cấu hình, giá tháng/năm và gợi ý từ MCP.
+- [x] `monacloud vps create --plan kinh-doanh --monthly`: estimate trước duyệt, spend guard đúng giá kỳ, poll job; `--period month|year`, `--name`, `--sandbox`, `--dry-run`, `--yes`.
+- [x] `monacloud invoices [--pdf <id>]`: đọc hoá đơn/tải PDF tạm riêng tư.
+- [x] `monacloud deploy [--repo <url>] [--branch <name>] [--build dockerfile|nixpacks|static] [--domain <host>]`: repo/nhánh mặc định từ git local, sandbox trước nếu chưa có host, duyệt chi phí, poll và in URL. Có `--app-host`, `--port`, `--dockerfile`, `--sandbox`, `--dry-run`, `--yes`.
+- [x] App từ git ghi **đang mở**; lỗi build/API/timeout trả exit 1, không báo thành công hoặc tự POST lại. Repo public HTTPS; SSH remote phổ biến được đổi sang HTTPS.
+- [x] CLI dùng stdio MCP >=0.3.0 local/PATH hoặc cache với npx --offline; dùng chung MONA Pass, refresh, guard và PDF, không thêm dependency và không tự tải package.
+- [x] Recipe thứ 7 `app-tu-git` VI/EN, init in ba bước và template có prompt mẫu. Template Mail đã có được giữ nguyên.
+- [x] Package/binary **0.3.0**, README + [docs/commands.md](docs/commands.md) có bảng lệnh/tool, auth, cờ và giới hạn rollout.
+
+Ví dụ:
+
+```bash
+monacloud plans
+monacloud vps create --plan kinh-doanh --monthly --name shop
+monacloud invoices --pdf <invoice_id>
+monacloud init --recipe app-tu-git --yes
+monacloud deploy --sandbox
+monacloud deploy
+```
+
+Gate cuối offline: `npm test` → **31/31 pass, 0 fail, 0 skip**. Bao gồm CLI executable → MCP thật → mock HTTP cho bảng giá, tạo monthly, PDF nguyên binary, sandbox/duyệt chi phí, URL và build lỗi; git local, schema/cờ, recipe/managed block cũ đều xanh. MCP: `npm test` → **35/35 pass**, version 0.3.0, 133 tool.
+
+Không npm install, không gọi Internet/production, không publish. Chi tiết monthly sandbox và snapshot OpenAPI cũ được ghi trong `mcp/docs/wave-ab.md`.
+
+Kiểm tra đóng gói offline: `npm pack --dry-run --json --offline --ignore-scripts` PASS (CLI 23 file), đủ source build/template/docs mới. Dùng npm CLI trực tiếp với config rỗng và `NODE_USE_SYSTEM_CA=0` để tránh lỗi Keychain/SecItemCopyMatching của Node trên runner. Không tạo tarball và không publish.
+
+CODEX DONE
+
+## Lịch sử trước Wave A/B
 
 ## Phạm vi đã triển khai
 
@@ -26,3 +58,7 @@ Không có hạng mục P0 nào được để lại ngoài package này.
 - Bản `0.2.0` đã publish trước thay đổi tên compute; bản `0.2.1` chưa publish.
 - JOB B 04/09: template/recipe đã dùng MONA Cloud, tool compute `cloud_*` và `MONACLOUD_API=https://api.monacloud.vn`; `VIBECLOUD_API` chỉ còn là env tương thích.
 - Gate `node --test`: 20/20 test pass; `--recipe` idempotent, slug sai báo đúng, recipes theo 3 mảng, voice sạch.
+
+## 05/09 — 0.2.2 (Claude): recipe `gui-mail-otp` + MONA Mail trong template agent
+- Thêm recipe thứ 6 `gui-mail-otp` (vi/en) cho `monacloud init --recipe gui-mail-otp`; `agent.vi.md`/`agent.en.md` đổi dòng "MONA Mail chưa mở" thành luật dùng MONA Mail (`mail_*`, SDK `monamail`, `MONAMAIL_API_KEY`, không cài Resend/SendGrid nếu không được yêu cầu) + ví dụ chuỗi tool + link llms.txt/agent-guide.md monamail.vn; `.env.monacloud` có `MONAMAIL_API`.
+- Test cập nhật đếm 6 recipe; `npm test` 20/20. Chưa publish npm 0.2.2: chờ api.monamail.vn live.

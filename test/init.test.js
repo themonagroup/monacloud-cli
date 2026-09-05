@@ -125,12 +125,12 @@ test('invalid recipe prints every valid slug and writes nothing', () => {
   assert.throws(() => readFileSync(join(directory, 'AGENTS.md')), { code: 'ENOENT' });
 });
 
-test('recipes command prints five lines in three groups', () => {
+test('recipes command prints seven lines in three groups', () => {
   const directory = temporaryProject();
   const result = run(directory, 'recipes');
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.split('\n').filter((line) => /^  \S+ — /.test(line)).length, 5);
+  assert.equal(result.stdout.split('\n').filter((line) => /^  \S+ — /.test(line)).length, 7);
   assert.match(result.stdout, /Quản trị doanh nghiệp:[\s\S]*phan-mem-noi-bo/);
   assert.match(result.stdout, /Marketing & bán hàng:[\s\S]*web-ban-hang[\s\S]*bot-cskh[\s\S]*landing-form-lead/);
   assert.match(result.stdout, /Trợ lý riêng của chủ:[\s\S]*tro-ly-chu-ca/);

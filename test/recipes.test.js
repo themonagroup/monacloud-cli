@@ -6,12 +6,13 @@ import { RECIPES } from '../bin/core.js';
 const templates = new URL('../templates/', import.meta.url);
 
 test('every finalized recipe ships Vietnamese and English instructions', () => {
-  assert.equal(RECIPES.length, 5);
+  assert.equal(RECIPES.length, 7);
   for (const { slug } of RECIPES) {
     for (const lang of ['vi', 'en']) {
       const content = readFileSync(new URL(`recipes/${slug}.${lang}.md`, templates), 'utf8');
       assert.match(content, /cloud_balance/);
-      assert.match(content, /cloud_vps_create/);
+      if (slug === 'gui-mail-otp') assert.match(content, /mail_send/);
+      else assert.match(content, /cloud_vps_create/);
       assert.doesNotMatch(content, /vibecloud_|VibeCloud/);
       assert.match(content, /## (Mục tiêu|Goal)/);
       assert.match(content, /## (Người dùng cần làm|What the user must do)/);

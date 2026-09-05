@@ -49,12 +49,12 @@ test('parseCli rejects unsupported values', () => {
   ));
 });
 
-test('formatRecipes lists five recipes under the three finalized groups', () => {
+test('formatRecipes lists seven recipes under the three finalized groups', () => {
   const output = formatRecipes('vi');
   assert.match(output, /^Quản trị doanh nghiệp:/m);
   assert.match(output, /^Marketing & bán hàng:/m);
   assert.match(output, /^Trợ lý riêng của chủ:/m);
-  assert.equal(output.split('\n').filter((line) => /^  \S+ — /.test(line)).length, 5);
+  assert.equal(output.split('\n').filter((line) => /^  \S+ — /.test(line)).length, 7);
   for (const { slug } of RECIPES) assert.equal(output.split(slug).length - 1, 1);
   assert.doesNotMatch(output, /saas-thu-phi/);
 });

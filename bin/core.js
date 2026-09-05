@@ -1,3 +1,4 @@
+import { parseCloudOptions } from './cloud.js';
 import { spawnSync } from 'node:child_process';
 import {
   accessSync,
@@ -14,7 +15,7 @@ import {
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const VERSION = '0.2.1';
+export const VERSION = '0.3.0';
 export const START_MARKER = '<!-- monacloud:start -->';
 export const END_MARKER = '<!-- monacloud:end -->';
 export const ENV_START_MARKER = '# monacloud:start';
@@ -22,6 +23,7 @@ export const ENV_END_MARKER = '# monacloud:end';
 export const REGISTRATION_URL = 'https://pass.monacloud.vn/realms/mona/protocol/openid-connect/registrations';
 
 export const RECIPES = Object.freeze([
+  Object.freeze({ slug: 'app-tu-git', group: 'business', vi: 'Deploy repo git thành app có HTTPS (đang mở)', en: 'Deploy a git repository with HTTPS (rollout in progress)' }),
   Object.freeze({
     slug: 'phan-mem-noi-bo',
     group: 'business',
@@ -52,6 +54,12 @@ export const RECIPES = Object.freeze([
     vi: 'Trợ lý đọc số bán, nhắc việc, soạn thư và canh dòng tiền',
     en: 'An owner assistant for sales, tasks, drafts and cash flow',
   }),
+  Object.freeze({
+    slug: 'gui-mail-otp',
+    group: 'sales',
+    vi: 'Gửi mail OTP, xác nhận đơn và thông báo bằng MONA Mail',
+    en: 'OTP, order confirmation and notification email with MONA Mail',
+  }),
 ]);
 
 const MCP_SERVER = Object.freeze({
@@ -64,6 +72,7 @@ MONACLOUD_ISSUER=https://pass.monacloud.vn/realms/mona
 MONACLOUD_BILLING_URL=https://billing.monacloud.vn
 MONAPAY_API=https://api.monapay.vn
 MONACLOUD_API=https://api.monacloud.vn
+MONAMAIL_API=https://api.monamail.vn
 MONACLOUD_CONSOLE_URL=https://monacloud.vn/console
 
 # OAuth defaults
@@ -356,6 +365,11 @@ export function parseCli(argv) {
     if (argv.length > 1) throw new CliError(`Unknown option: ${argv[1]}`);
     return { command: 'help', options: {} };
   }
+  if (['plans', 'invoices', 'deploy'].includes(argv[0])) return { command: argv[0], options: parseCloudOptions(argv[0], argv.slice(1)) };
+  if (argv[0] === 'vps') {
+    if (argv[1] !== 'create') throw new CliError('Dùng monacloud vps create --plan <code> --monthly.');
+    return { command: 'vps', options: parseCloudOptions('vps', argv.slice(2)) };
+  }
   if (argv[0] === 'init') return { command: 'init', options: parseOptions(argv.slice(1)) };
   if (argv[0] === 'doctor') return { command: 'doctor', options: parseOptions(argv.slice(1), { command: 'doctor' }) };
   if (argv[0] === 'recipes') return { command: 'recipes', options: parseOptions(argv.slice(1), { command: 'recipes' }) };
@@ -398,7 +412,7 @@ function executableCandidates(name, env, cwd) {
   return [...new Set(candidates)];
 }
 
-function findExecutable(name, env, cwd) {
+export function findExecutable(name, env, cwd) {
   for (const candidate of executableCandidates(name, env, cwd)) {
     try {
       const candidateStat = lstatSync(candidate);
@@ -496,23 +510,31 @@ export function helpText(lang = 'vi') {
   monacloud init [--yes] [--dry-run] [--tool claude|codex|cursor|all] [--lang vi|en] [--recipe <slug>]
   monacloud recipes [--lang vi|en]
   monacloud doctor [--lang vi|en]
+  monacloud plans
+  monacloud vps create --plan <code> --monthly [--period month|year] [--name <name>] [--sandbox] [--dry-run] [--yes]
+  monacloud invoices [--pdf <id>]
+  monacloud deploy [--repo <url>] [--branch <name>] [--build dockerfile|nixpacks|static] [--domain <host>] [--app-host <id>] [--port <port>] [--dockerfile <path>] [--sandbox] [--dry-run] [--yes]
   monacloud --help
   monacloud --version
 
 Commands:
   init     Add MONA Cloud agent instructions, MCP configs and env example
-  recipes  List the five recipes in three business groups
+  recipes  List seven recipes in three business groups
   doctor   Check Node.js, monacloud-mcp and token-store permissions`;
   }
   return `Cách dùng:
   monacloud init [--yes] [--dry-run] [--tool claude|codex|cursor|all] [--lang vi|en] [--recipe <slug>]
   monacloud recipes [--lang vi|en]
   monacloud doctor [--lang vi|en]
+  monacloud plans
+  monacloud vps create --plan <code> --monthly [--period month|year] [--name <name>] [--sandbox] [--dry-run] [--yes]
+  monacloud invoices [--pdf <id>]
+  monacloud deploy [--repo <url>] [--branch <name>] [--build dockerfile|nixpacks|static] [--domain <host>] [--app-host <id>] [--port <port>] [--dockerfile <path>] [--sandbox] [--dry-run] [--yes]
   monacloud --help
   monacloud --version
 
 Lệnh:
   init     Thêm luật cho AI agent, cấu hình MCP và env mẫu
-  recipes  Liệt kê 5 công thức theo 3 nhóm mảng
+  recipes  Liệt kê 7 công thức theo 3 nhóm mảng
   doctor   Kiểm tra Node.js, monacloud-mcp và quyền token store`;
 }

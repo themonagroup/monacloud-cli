@@ -1,6 +1,6 @@
 {
   "name": "monacloud",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Bootstrap MONA Cloud instructions and MCP configuration in an AI-assisted project.",
   "license": "MIT",
   "type": "module",
@@ -10,7 +10,9 @@
   "files": [
     "bin/",
     "templates/",
-    "README.md"
+    "README.md",
+    "docs/",
+    "STATUS.md"
   ],
   "scripts": {
     "test": "node --test"

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createInterface } from 'node:readline/promises';
+import { connectMcp, runCloud } from './cloud.js';
 import {
   CliError,
   REGISTRATION_URL,
@@ -30,9 +31,15 @@ async function confirmInit(lang) {
   }
 }
 
-function printNextSteps(lang, tool) {
+function printNextSteps(lang, tool, recipe) {
   if (tool === 'all' || tool === 'codex') {
     console.log(`Codex MCP: codex mcp add monacloud -- npx -y monacloud-mcp`);
+  }
+  if (recipe === 'app-tu-git') {
+    console.log('1. monacloud-mcp login');
+    console.log('2. monacloud deploy --sandbox');
+    console.log('3. monacloud deploy (đọc ước tính và duyệt chi phí / review and approve costs)');
+    return;
   }
   if (lang === 'en') {
     console.log('Next steps:');
@@ -67,7 +74,7 @@ async function init(options) {
     } else {
       console.log(changedPlan.map(formatDiff).join('\n'));
     }
-    printNextSteps(options.lang, options.tool);
+    printNextSteps(options.lang, options.tool, options.recipe);
     return;
   }
 
@@ -83,7 +90,7 @@ async function init(options) {
     console.log(`Đã khởi tạo MONA Cloud: ${changed.length} file thay đổi.`);
   }
   for (const item of changed) console.log(`${item.before === null ? '+' : '~'} ${item.relativePath}`);
-  printNextSteps(options.lang, options.tool);
+  printNextSteps(options.lang, options.tool, options.recipe);
 }
 
 function doctor(options) {
@@ -117,6 +124,22 @@ async function main() {
     } else {
       console.log(formatRecipes(parsed.options.lang));
     }
+    return;
+  }
+  if (['plans', 'invoices', 'vps', 'deploy'].includes(parsed.command)) {
+    if (parsed.options.help) { console.log(helpText()); return; }
+    const mcp = await connectMcp();
+    try {
+      await runCloud(parsed.command, parsed.options, {
+        callTool: mcp.callTool,
+        confirm: async (question) => {
+          if (!process.stdin.isTTY || !process.stdout.isTTY) return false;
+          const input = createInterface({ input: process.stdin, output: process.stdout });
+          try { return /^(y|yes|c|co|có)$/iu.test((await input.question(question)).trim()); }
+          finally { input.close(); }
+        },
+      });
+    } finally { mcp.close(); }
     return;
   }
   await init(parsed.options);
