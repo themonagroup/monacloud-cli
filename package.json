@@ -1,6 +1,6 @@
 {
   "name": "monacloud",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Bootstrap MONA Cloud instructions and MCP configuration in an AI-assisted project.",
   "license": "MIT",
   "type": "module",

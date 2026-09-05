@@ -14,7 +14,7 @@ test('CLI executable → real MCP → mock HTTP covers plans, monthly VPS, PDF, 
     const executable = join(cwd, 'mcp'), trace = join(cwd, 'trace.jsonl');
     writeFileSync(executable, `#!${process.execPath}\n(async()=>{await import(${JSON.stringify(join(mcpRoot, 'support/mock-wave-ab.mjs'))});await import(${JSON.stringify(join(mcpRoot, 'dist/index.js'))});})();\n`, { mode: 0o700 });
     const run = (args, extra = {}) => spawnSync(process.execPath, [join(cliRoot, 'bin/monacloud.js'), ...args], { cwd, encoding: 'utf8', timeout: 15000, env: {
-      ...process.env, NODE_USE_SYSTEM_CA: '0', MONACLOUD_MCP_BIN: executable, MONACLOUD_CONFIG_DIR: join(cwd, 'config'),
+      ...process.env, MONACLOUD_WAIT_HTTPS: '0', NODE_USE_SYSTEM_CA: '0', MONACLOUD_MCP_BIN: executable, MONACLOUD_CONFIG_DIR: join(cwd, 'config'),
       MONACLOUD_TOKEN: 'fake-pass-only', VIBECLOUD_API_TOKEN: 'fake-compute-only', MONACLOUD_API: 'https://compute.test', MONACLOUD_BILLING_URL: 'https://billing.test', MONACLOUD_SANDBOX: '', WAVE_AB_TRACE: trace, ...extra,
     } });
     for (const args of [['plans'], ['invoices'], ['vps', 'create', '--plan', 'kinh-doanh', '--monthly', '--name', 'shop', '--yes']]) {

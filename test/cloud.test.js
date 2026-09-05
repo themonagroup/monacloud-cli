@@ -47,7 +47,7 @@ test('VPS shows correct period quote before approval, creates monthly payload, w
   const calls = [], out = output();
   let approved = false;
   await runCloud('vps', { plan: plan.code, period: 'year', name: 'shop' }, {
-    ...out, env: {}, confirm: async () => { assert.match(out.lines.at(-1), /9\.990\.000 đ\/year/); approved = true; return true; },
+    ...out, env: { MONACLOUD_WAIT_HTTPS: '0' }, confirm: async () => { assert.match(out.lines.at(-1), /9\.990\.000 đ\/year/); approved = true; return true; },
     callTool: async (name, args) => {
       calls.push(name);
       if (name === 'cloud_plan_list') return { plans: [plan] };
@@ -62,7 +62,7 @@ test('VPS shows correct period quote before approval, creates monthly payload, w
 test('VPS dry-run and refusal never create, sandbox skips approval and balance', async () => {
   for (const options of [{ dryRun: true }, {}, { sandbox: true }]) {
     const calls = [];
-    const task = runCloud('vps', { plan: plan.code, ...options }, { print: () => {}, env: {}, callTool: async (name) => {
+    const task = runCloud('vps', { plan: plan.code, ...options }, { print: () => {}, env: { MONACLOUD_WAIT_HTTPS: '0' }, callTool: async (name) => {
       calls.push(name); if (name === 'cloud_plan_list') return { plans: [plan] };
       if (name === 'cloud_vps_create') return { id: 'j1', sandbox: true };
       return { status: 'done' };
@@ -76,7 +76,7 @@ test('VPS dry-run and refusal never create, sandbox skips approval and balance',
 test('new host deploy previews in sandbox before approval and only prints real URL after completion', async () => {
   const calls = [], out = output(); let approved = false;
   await runCloud('deploy', { ...deployOptions, yes: false, build: 'static', domain: 'shop.test' }, {
-    ...out, env: {}, confirm: async () => { approved = true; assert.match(out.lines.at(-1), /hourly_rate_vnd/); return true; },
+    ...out, env: { MONACLOUD_WAIT_HTTPS: '0' }, confirm: async () => { approved = true; assert.match(out.lines.at(-1), /hourly_rate_vnd/); return true; },
     callTool: async (name, args) => {
       calls.push({ name, args });
       if (name === 'cloud_app_host_list') return { app_hosts: [] };
@@ -94,7 +94,7 @@ test('new host deploy previews in sandbox before approval and only prints real U
 test('existing host is reused without new host preview; dry-run does not mutate', async () => {
   for (const dryRun of [true, false]) {
     const calls = [];
-    await runCloud('deploy', { ...deployOptions, dryRun }, { print: () => {}, env: {}, callTool: async (name, args) => {
+    await runCloud('deploy', { ...deployOptions, dryRun }, { print: () => {}, env: { MONACLOUD_WAIT_HTTPS: '0' }, callTool: async (name, args) => {
       calls.push(name);
       if (name === 'cloud_app_host_list') return { app_hosts: [{ id: 'host1', status: 'active', hourly_rate_vnd: 12 }] };
       if (name === 'cloud_balance') return {};
@@ -119,7 +119,7 @@ test('missing estimate, rejected approval, rollout errors and timeout never resu
   for (const mode of ['no-estimate', 'refused', 'rollout', 'timeout', 'failed']) {
     let live = 0; const out = output();
     await assert.rejects(runCloud('deploy', { ...deployOptions, yes: mode !== 'refused' }, {
-      ...out, env: {}, callTool: async (name, args) => {
+      ...out, env: { MONACLOUD_WAIT_HTTPS: '0' }, callTool: async (name, args) => {
         if (mode === 'rollout') throw new Error('rollout_pending');
         if (name === 'cloud_app_host_list') return [];
         if (name === 'cloud_balance') return {};

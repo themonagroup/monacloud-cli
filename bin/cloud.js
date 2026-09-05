@@ -107,6 +107,22 @@ function gitValue(args, cwd, runGit) {
   return result.status === 0 ? result.stdout.trim() : '';
 }
 
+async function waitHttps(url, attempts = 8, delayMs = 15000) {
+  const started = Date.now();
+  let reason = 'chưa phản hồi';
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const res = await fetch(url, { method: 'GET', redirect: 'follow', signal: AbortSignal.timeout(15000) });
+      if (res.status < 500) return { ok: true, status: res.status, seconds: Math.round((Date.now() - started) / 1000) };
+      reason = `HTTP ${res.status}`;
+    } catch (error) {
+      reason = error && error.cause && error.cause.code ? error.cause.code : (error && error.name) || 'lỗi mạng';
+    }
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return { ok: false, status: 0, seconds: Math.round((Date.now() - started) / 1000), reason };
+}
+
 export function deployPayload(options, { cwd = process.cwd(), runGit = spawnSync } = {}) {
   if (options.domain && !/^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/.test(options.domain)) throw new CliError('--domain chỉ nhận hostname, không URL/path.');
   const local = options.local || (!options.git && !options.repo && (existsSync(resolve(cwd, 'Dockerfile')) || existsSync(resolve(cwd, 'package.json'))));
@@ -235,5 +251,10 @@ export async function runCloud(command, options, {
   if (!url || !['done', 'succeeded'].includes(result.status)) completed(result, 'Deploy');
   if (!url) throw new CliError('Job xong nhưng chưa có URL; đọc cloud_app_get.', 1);
   print(url);
-  return result;
+  // Cert Let's Encrypt cấp sau deploy vài chục giây: kiểm HTTPS thật trước khi báo xong (tối đa ~2 phút), không làm fail.
+  const waitEnv = (env && env.MONACLOUD_WAIT_HTTPS) ?? process.env.MONACLOUD_WAIT_HTTPS;
+  if (waitEnv === '0') return { ...result, https_ready: null };
+  const ready = await waitHttps(url);
+  print(ready.ok ? `HTTPS sẵn sàng sau ${ready.seconds}s (HTTP ${ready.status}).` : `URL đã tạo nhưng HTTPS chưa trả lời sau ${ready.seconds}s (${ready.reason}); thử lại sau 1–2 phút, hoặc đọc cloud_app_logs.`);
+  return { ...result, https_ready: ready.ok };
 }

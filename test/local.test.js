@@ -34,7 +34,7 @@ test('local deploy detects, previews host price, obtains one approval, then prin
   try {
     writeFileSync(join(cwd, 'package.json'), '{}');
     const calls = [], lines = []; let approvals = 0;
-    const out = await runCloud('deploy', {}, { cwd, env: {}, print: (value) => lines.push(value), confirm: async () => { approvals++; assert.match(lines.at(-1), /hourly_rate_vnd/); return true; }, callTool: async (name, args) => {
+    const out = await runCloud('deploy', {}, { cwd, env: { MONACLOUD_WAIT_HTTPS: '0' }, print: (value) => lines.push(value), confirm: async () => { approvals++; assert.match(lines.at(-1), /hourly_rate_vnd/); return true; }, callTool: async (name, args) => {
       calls.push({ name, args });
       if (name === 'cloud_app_detect') return { stack: 'next', build_type: 'nixpacks', port: 3000, name: 'demo', env_required: ['DATABASE_URL'] };
       if (name === 'cloud_app_host_list') return { app_hosts: [] };
@@ -52,7 +52,7 @@ test('local deploy detects, previews host price, obtains one approval, then prin
 test('local dry-run reuses host estimate without sending upload-only unsupported app_host_id', async () => {
   for (const dryRun of [true, false]) {
     const calls = [];
-    await runCloud('deploy', { local: true, dryRun, yes: true }, { env: {}, print: () => {}, callTool: async (name, args) => {
+    await runCloud('deploy', { local: true, dryRun, yes: true }, { env: { MONACLOUD_WAIT_HTTPS: '0' }, print: () => {}, callTool: async (name, args) => {
       calls.push(name);
       if (name === 'cloud_app_detect') return { stack: 'static', build_type: 'static', port: 80, name: 'demo' };
       if (name === 'cloud_app_host_list') return { app_hosts: [{ id: 'h1', status: 'active', billing_mode: 'monthly' }] };
@@ -65,7 +65,7 @@ test('local dry-run reuses host estimate without sending upload-only unsupported
 
 test('local sandbox stops on a failed job and does not print its URL as success', async () => {
   const lines = [];
-  await assert.rejects(runCloud('deploy', { local: true, sandbox: true }, { env: {}, print: (line) => lines.push(line), callTool: async (name) => name === 'cloud_app_detect'
+  await assert.rejects(runCloud('deploy', { local: true, sandbox: true }, { env: { MONACLOUD_WAIT_HTTPS: '0' }, print: (line) => lines.push(line), callTool: async (name) => name === 'cloud_app_detect'
     ? { stack: 'static', build_type: 'static', port: 80, name: 'demo' }
     : { status: 'failed', url: 'https://bad.test', job_id: 'j1' },
   }), /chưa hoàn tất/);
@@ -85,7 +85,7 @@ test('CLI executable local cwd → real MCP ZIP → mock multipart upload, sandb
     writeFileSync(join(cwd, '.gitignore'), 'mcp\ntrace.jsonl\n');
     writeFileSync(executable, `#!${process.execPath}\n(async()=>{await import(${JSON.stringify(join(mcpRoot, 'support/mock-wave-ab.mjs'))});await import(${JSON.stringify(join(mcpRoot, 'dist/index.js'))});})();\n`, { mode: 0o700 });
     const run = (args, extra = {}) => spawnSync(process.execPath, [join(cliRoot, 'bin/monacloud.js'), 'deploy', '--name', 'demo', ...args], { cwd, encoding: 'utf8', timeout: 15000, env: {
-      ...process.env, NODE_USE_SYSTEM_CA: '0', MONACLOUD_MCP_BIN: executable, MONACLOUD_CONFIG_DIR: join(cwd, 'config'), MONACLOUD_TOKEN: 'fake-pass-only', VIBECLOUD_API_TOKEN: 'fake-compute-only', MONACLOUD_API: 'https://compute.test', MONACLOUD_BILLING_URL: 'https://billing.test', MONACLOUD_SANDBOX: '', WAVE_AB_TRACE: trace, ...extra,
+      ...process.env, MONACLOUD_WAIT_HTTPS: '0', NODE_USE_SYSTEM_CA: '0', MONACLOUD_MCP_BIN: executable, MONACLOUD_CONFIG_DIR: join(cwd, 'config'), MONACLOUD_TOKEN: 'fake-pass-only', VIBECLOUD_API_TOKEN: 'fake-compute-only', MONACLOUD_API: 'https://compute.test', MONACLOUD_BILLING_URL: 'https://billing.test', MONACLOUD_SANDBOX: '', WAVE_AB_TRACE: trace, ...extra,
     } });
     const preview = run(['--sandbox']); assert.equal(preview.status, 0, preview.stderr); assert.match(preview.stdout, /Sandbox \(0đ\): https:\/\/sandbox.test/);
     const denied = run([]); assert.equal(denied.status, 1); assert.match(denied.stderr, /Đã huỷ/);
